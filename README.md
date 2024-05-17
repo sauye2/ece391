@@ -1,3 +1,5 @@
+Implementation of an operating system modeled after the Linux kernel build. Supports features such as memory virtualization through paging, interrupts, exceptions, keyboard, RTC, read-only filesystem, system calls, and multiple shells.
+
 ACADEMIC INTEGRITY
 -----
 Please review the University of Illinois Student Code before starting,
