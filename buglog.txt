@@ -1,0 +1,35 @@
+1. Error in boot.S when trying to make - 3/18/2024 - fixed by added gdt_desc_ptr in a .globl in x86_desc.S
+2. Booting loop - 3/18/2024 - fixed by actually calling setup for interrupts in kernel.c
+3. Enable/disable_rq - 3/19/24 - Replaced inb(port) with master_mask and slave_mask, using each bit to determine mask of irq0-7
+4. Segment Not Present exception - 3/21/24 - Forgot to set the keyboard and rtc handlers present field in IDT entry, causing it to be 0, and thus a segment not present exception was being thrown.
+5. Keyboard prints weird character and only sends one character before crashing - 3/23/24 - Had a printf statement I forgot about that was printing the uint8 and forgot to send EOI. 
+6. Keyboard caps lock does same thing as shift but shouldnt - 3/24/24 - i.e. caps enabled should be - but is _, need to have two seperate cases for if it is a character or a special key.
+7. After enabling paging and running "info mem", we got one entry for rw and the issue was because we initialized everything in PTE present and r/w (basically populating all) and this
+caused it to output just one line saying 0-800000. Chaning intializiation to 0 for every entry resolved the issue and showed the two entries we were looking for. 3/25 
+8. backspace key adds new character - 3/25/2024 - fixed by making a popc function 
+9. backspace key doesn't return to line if no enter pressed - 3/25/2024 - fixed by making popc check for index
+10. size limited by line wrapping - 3/25/2024 - fixed by making the line not push an enter character onto the stack, instead just changing variables
+11. Inode, file size, block_index, curr_data_block were all printing as 0 - 4/4/24 - fixed by creating inode_t structure as recommended in OH, and fixed numerous issues with how we were dereferencing pointers
+12. Pagefault -> memcopy was not working correctly - 4/4/24 - we originally were using a uint32_t array, instead of uint8_t(advice from discord) array so we were not passing in bytes correctly, and we did not have the correct indexing into the block
+13. We were reading more bytes then expected - 4/4/24 - We forgot to consider that we need the minimum of (offset+length) and file_length to determine how much we read, so we were using both and it caused errors
+14. ECE391OS> infinite loop - 4/15/24 - Our keyboard was not properly checking if enter was hit before reading, so it just caused shell to loop printing ece391os repeatedly
+15. PageFault from context switch in execute - 4/15/24 - Pushed flags in our assembly handler at end, which was overwriting the parameters. It needed to be pushed before ebx ecx and edx
+
+Checkpoint4: 
+
+16. Shell is currently doing "OS391 > \n" creating a newline when it  should not- 4/15/24 - 
+17. When we get to halt we page fault - 4/15/24 - forgot to handle parent paging. We took our execute code and pasted in halt.
+18. When testing syscalls, the fd and nbytes arguments that were being passed were giving huge numbers. 4/15/24 Fixed this by changing syscall_handler push order. Initially, flags were being pushed last and popped first, switched it to be pushed before arguments and popped after arguments.
+
+Checkpoint 5:
+19. Fish gives pageFault - 4/24/24 - fixed by changing addresses with paging
+20. Opening a second shell gives page fault - 4/24/24 - fixed by fixing paranthesis grouping in get_pcb() function.  (pcb_t*) should be applied to the entire 8mb-8kb(pid+1) statement rather than only to 8mb.
+21. syserr does not print "all programs passed" even tho passed - 4/24/24 - terminal_write would break on \n and would loop for min(nbytes, term read buffer) when only terminal read should make those checks.
+22. Cat only prints a single line - 4/24/24 - terminal_write would break on \n and would loop for min(nbytes, term read buffer) when only terminal read should make those checks.
+23. grep gives pageFault - 4/24/24 - 
+24. cat anything gives pagefault (not frame0txt or frame1txt) - if nbytes for readdata was < 4096 we were ttrying to memcpy nbytes+offset instead of just nbytes, fixed by throwing in a new if statement to check value.
+25. Newline procced by overfilling buffer at end of page causes pagefault - 4/25/24 - added new case to address, pushes new character then does newline shenanigans
+26. terminals kept closing other shells when exiting - 28 apr - fixed by adding pid field to terminal_t struct
+27. couldn't open other terminals - 27 apr - addresses were wrong for terminals
+28. cursor 
+29. context switch in scheduler() causes a bootloop - 4/28/24 - 
