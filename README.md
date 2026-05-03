@@ -1,72 +1,109 @@
-Implementation of an operating system modeled after the Linux kernel build. Supports features such as memory virtualization through paging, interrupts, exceptions, keyboard, RTC, read-only filesystem, system calls, and multiple shells.
+# x86 Educational Operating System Kernel
 
-ACADEMIC INTEGRITY
------
-Please review the University of Illinois Student Code before starting,
-particularly all subsections of Article 1, Part 4 Academic Integrity and Procedure [here](http://studentcode.illinois.edu/article1_part4_1-401.html).
+A small Unix-like operating system kernel written in C and x86 assembly. This project implements core OS components including interrupt handling, paging, device drivers, a read-only filesystem, system calls, process loading, and terminal I/O.
 
-**§ 1‑402 Academic Integrity Infractions**
+Built as a low-level systems project to understand how an operating system boots, manages memory, handles hardware interrupts, loads user programs, and exposes kernel services through a syscall interface.
 
-(a).	Cheating. No student shall use or attempt to use in any academic exercise materials, information, study aids, or electronic data that the student knows or should know is unauthorized. Instructors are strongly encouraged to make in advance a clear statement of their policies and procedures concerning the use of shared study aids, examination files, and related materials and forms of assistance. Such advance notification is especially important in the case of take-home examinations. During any examination, students should assume that external assistance (e.g., books, notes, calculators, and communications with others) is prohibited unless specifically authorized by the Instructor. A violation of this section includes but is not limited to:
+## Overview
 
-(1)	Allowing others to conduct research or prepare any work for a student without prior authorization from the Instructor, including using the services of commercial term paper companies. 
+This kernel runs in an x86/QEMU environment and includes a custom bootable kernel image, user-level test programs, and a simple read-only filesystem. The project focuses on the core mechanics of operating systems rather than relying on an existing OS runtime or standard library.
 
-(2)	Submitting substantial portions of the same academic work for credit more than once or by more than one student without authorization from the Instructors to whom the work is being submitted. 
+Key areas implemented:
 
-(3) Working with another person without authorization to satisfy an individual assignment.
+- Interrupt Descriptor Table setup for CPU exceptions, hardware interrupts, and system calls
+- Programmable interrupt controller initialization
+- Keyboard and RTC device drivers
+- Virtual memory setup with paging
+- Read-only filesystem with directory entries, inodes, and data blocks
+- File descriptor abstraction with per-device operation tables
+- System calls for executing programs, halting processes, reading, writing, opening, and closing files
+- Terminal input/output with keyboard buffering
+- User program loading through ELF validation and context switching
+- Experimental multi-terminal and scheduler support
 
-(b) Plagiarism. No student shall represent the words, work, or ideas of another as his or her own in any academic endeavor. A violation of this section includes but is not limited to:
+## Technical Highlights
 
-(1)	Copying: Submitting the work of another as one’s own. 
+### Kernel and Interrupt Handling
 
-(2)	Direct Quotation: Every direct quotation must be identified by quotation marks or by appropriate indentation and must be promptly cited. Proper citation style for many academic departments is outlined in such manuals as the MLA Handbook or K.L. Turabian’s A Manual for Writers of Term Papers, Theses and Dissertations. These and similar publications are available in the University bookstore or library. The actual source from which cited information was obtained should be acknowledged.
+The kernel initializes descriptor tables, the PIC, device interrupts, paging, filesystem state, terminal support, and syscall dispatch. Exception handlers are registered through the IDT, while hardware interrupts are routed through assembly stubs into C handlers.
 
-(3)	Paraphrase: Prompt acknowledgment is required when material from another source is paraphrased or summarized in whole or in part. This is true even if the student’s words differ substantially from those of the source. A citation acknowledging only a directly quoted statement does not suffice as an acknowledgment of any preceding or succeeding paraphrased material. 
+Implemented interrupt-related components include:
 
-(4)	Borrowed Facts or Information: Information obtained in one’s reading or research that is not common knowledge must be acknowledged. Examples of common knowledge might include the names of leaders of prominent nations, basic scientific laws, etc. Materials that contribute only to one’s general understanding of the subject may be acknowledged in a bibliography and need not be immediately cited. One citation is usually sufficient to acknowledge indebtedness when a number of connected sentences in the paper draw their special information from one source.
+- CPU exception handlers
+- Keyboard interrupt handling
+- RTC interrupt handling
+- PIT interrupt setup
+- System call interrupt entry point
+- IDT initialization and privilege-level setup
 
-(c) Fabrication. No student shall falsify or invent any information or citation in an academic endeavor. A violation of this section includes but is not limited to:
+### Virtual Memory
 
-(1)	Using invented information in any laboratory experiment or other academic endeavor without notice to and authorization from the Instructor or examiner. It would be improper, for example, to analyze one sample in an experiment and covertly invent data based on that single experiment for several more required analyses. 
+Paging is initialized manually by setting up page directory and page table entries. The kernel maps video memory, kernel memory, and user program memory regions, then enables paging through control register updates.
 
-(2)	Altering the answers given for an exam after the examination has been graded. 
+The memory system supports:
 
-(3)	Providing false or misleading information for the purpose of gaining an academic advantage.
+- Kernel page mapping
+- Video memory mapping
+- User program virtual address mapping
+- TLB flushing after page table changes
+- Per-process physical memory selection
 
-(d)	Facilitating Infractions of Academic Integrity. No student shall help or attempt to help another to commit an infraction of academic integrity, where one knows or should know that through one’s acts or omissions such an infraction may be facilitated. A violation of this section includes but is not limited to:
+### Filesystem
 
-(1)	Allowing another to copy from one’s work. 
+The filesystem is a simple read-only filesystem built around a boot block, directory entries, inodes, and data blocks.
 
-(2)	Taking an exam by proxy for someone else. This is an infraction of academic integrity on the part of both the student enrolled in the course and the proxy or substitute. 
+Implemented filesystem operations include:
 
-(3)	Removing an examination or quiz from a classroom, faculty office, or other facility without authorization.
+- Initialize filesystem metadata from boot module memory
+- Read directory entries by name
+- Read directory entries by index
+- Read file data by inode, offset, and length
+- Directory read support
+- Regular file read support
+- Read-only write behavior
 
-(e)	Bribes, Favors, and Threats. No student shall bribe or attempt to bribe, promise favors to or make threats against any person with the intent to affect a record of a grade or evaluation of academic performance. This includes conspiracy with another person who then takes the action on behalf of the student.
+### System Calls and Process Loading
 
-(f)	Academic Interference. No student shall tamper with, alter, circumvent, or destroy any educational material or resource in a manner that deprives any other student of fair access or reasonable use of that material or resource. 
+The syscall layer provides a small Unix-like interface between user programs and the kernel.
 
-(1)	Educational resources include but are not limited to computer facilities, electronic data, required/reserved readings, reference works, or other library materials. 
+Implemented syscall behavior includes:
 
-(2)	Academic interference also includes acts in which the student committing the infraction personally benefits from the interference, regardless of the effect on other students.
+- `halt`
+- `execute`
+- `read`
+- `write`
+- `open`
+- `close`
+- `getargs`
+- `vidmap`
 
+The `execute` path validates executable files using ELF magic bytes, loads program data into user memory, sets up paging, initializes process control block state, configures file descriptors, and transitions from kernel mode into user mode with `iret`.
 
-LEGAL
------
-Permission to use, copy, modify, and distribute this software and its
-documentation for any purpose, without fee, and without written agreement is
-hereby granted, provided that the above copyright notice and the following
-two paragraphs appear in all copies of this software.
+### File Descriptor Abstraction
 
-IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
-ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
-EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+Each process has a file descriptor table that maps descriptors to operation tables. This allows the same syscall interface to dispatch to different backends, including:
 
-THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
+- Terminal input
+- Terminal output
+- RTC
+- Directories
+- Regular files
 
-PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
-THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
-SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
+This mirrors the Unix-style idea that devices and files can be accessed through a common read/write/open/close interface.
+
+### Terminal and Keyboard Input
+
+The terminal layer works with the keyboard driver to support buffered keyboard input and terminal output. The keyboard handler supports printable characters, shift/caps behavior, backspace, enter, tab expansion, control shortcuts, and terminal-switch key combinations.
+
+## Repository Structure
+
+```text
+.
+├── student-distrib/      # Kernel source, drivers, paging, syscall layer, tests, build files
+├── syscalls/             # User-space programs and syscall wrappers
+├── fsdir/                # Files included in the generated read-only filesystem image
+├── fish/                 # Fish animation/demo program assets
+├── createfs              # Filesystem image creation utility
+├── elfconvert            # ELF conversion utility
+├── buglog.txt            # Debugging notes and issue history
+└── README.md
