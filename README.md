@@ -1,4 +1,4 @@
-# x86 Educational Operating System Kernel
+# x86 Operating System Kernel
 
 A small Unix-like operating system kernel written in C and x86 assembly. This project implements core OS components including interrupt handling, paging, device drivers, a read-only filesystem, system calls, process loading, and terminal I/O.
 
